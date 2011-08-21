@@ -1,0 +1,4 @@
+The directory structure here works with the couchapp tool, so just set up your
+.couchapprc file and `couchapp push` the code. The hope is that in the future
+this will be done automatically for you when a new database is set up to track
+versions.
