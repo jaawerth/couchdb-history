@@ -1,0 +1,4 @@
+{
+    "name": "couchdb-history",
+    "description": "Documents in this database are immutable. See http://github.com/sbisbee/couchdb-history for more information."
+}
