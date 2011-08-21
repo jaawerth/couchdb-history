@@ -1,0 +1,12 @@
+couchdb-history
+===============
+
+People's first impression of CouchDB's _rev attribute in its documents is that
+they get built in management of their data's history, much like git or svn give
+them. Then they find out about compaction and MVCC.
+
+This tool meets that need for them by creating a separate document for each
+revision of a document, while allowing them to interface with their data like
+normal.
+
+The project is under the Apache License, which you can find in the LICENSE file.
