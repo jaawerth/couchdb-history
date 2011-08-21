@@ -1,0 +1,59 @@
+#!/usr/bin/php
+<?php
+/*
+ * couchdb-history watches the server and spins up a couchdb-history-watch
+ * process for each new database.
+ */
+require_once('../lib/sag-0.5.1/Sag.php');
+
+class CouchHistory {
+  private static $instance;
+
+  private $DATABASE_BLACKLIST = array(
+    '_users' => true,
+    '_replicate' => true
+  );
+
+  private $dbPrefix = 'ch-';
+
+  private $dbsSeen = array();
+
+  private $sag;
+
+  private function __construct() {
+    $this->sag = new Sag();
+    $this->refreshDatabases();
+  }
+
+  public static function run() {
+    if(!self::$instance) {
+      $instance = new CouchHistory();
+    }
+
+    return $instance;
+  }
+
+  private function fork($db) {
+    echo "forking to watch $db\n";
+    exec("./couchdb-history-watch $db \"{$this->dbPrefix}$db\" >/dev/null 2>&1 &");
+  }
+
+  private function refreshDatabases() {
+    $dbs = $this->sag->getAllDatabases()->body;
+
+    foreach($dbs as $v) {
+      if(
+        !$this->dbsSeen[$v] &&
+        !$this->DATABASE_BLACKLIST[$v] &&
+        substr($v, 0, strlen($this->dbPrefix)) !== $this->dbPrefix
+      ) {
+        $this->dbsSeen[$v] = true;
+
+        $this->fork($v);
+      }
+    }
+  }
+}
+
+CouchHistory::run();
+?>
