@@ -1,0 +1,77 @@
+#!/usr/bin/php
+<?php
+/*
+ * Watches a specified database and persists its changes to another database as
+ * individual documents.
+ *
+ * ./couchdb-history-watch SRC_DB DST_DB [LAST_SEEN_SEQ_NUMBER]
+ */
+
+require_once('../lib/sag-0.5.1/Sag.php');
+require_once('../lib/logger/Logger.php');
+
+function makeID($id, $rev) {
+  return "$id @ $rev";
+}
+
+$SRC_DB = $argv[1];
+$DST_DB = $argv[2];
+$lastSeen = $argv[3] ?: 0;
+
+Logger::setFile('/tmp/c-h-w.log');
+
+Logger::info("Told to watch $SRC_DB");
+
+$sag = new Sag();
+
+while(true) {
+  Logger::info("Waiting for the next change on $SRC_DB (since=$lastSeen)");
+
+  $sag->setDatabase($SRC_DB);
+
+  $result = $sag->get("/_changes?since=$lastSeen&include_docs=true&feed=longpoll");
+
+  //TODO check HTTP codes
+
+  $result = $result->body;
+
+  $lastSeen = $result->last_seq;
+
+  if(is_array($result->results)) {
+    foreach($result->results as $change) {
+      try {
+        $doc = $change->doc;
+
+        //back these up for ref later
+        $id = $doc->_id;
+        $rev = $doc->_rev;
+
+        //build the new _id from the old _id and _rev
+        $doc->_id = makeID($doc->_id, $doc->_rev);
+
+        unset($doc->_rev);
+
+        $sag->setDatabase($DST_DB, true);
+
+        //back the change set up
+        $putResult = $sag->put($doc->_id, $doc);
+
+        if($putResult->headers->_HTTP->status == 201) {
+          Logger::info("Just created {$putResult->body->id} ({$id} @ {$rev}).");
+        }
+        else {
+          Logger::error("Non-201 HTTP status code when sending {$putResult->body->id} ({$putResult->headers->_HTTP->status}).");
+        }
+      }
+      catch(SagCouchException $e) {
+        if($e->getCode() == 409) {
+          Logger::error("Just tried to back up a version that was already backed up.");
+        }
+        else {
+          throw $e;
+        }
+      }
+    }
+  }
+}
+?>
