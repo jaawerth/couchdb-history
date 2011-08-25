@@ -20,7 +20,10 @@ class CouchHistory {
     Logger::setFile('/tmp/c-h.log');
 
     $this->sag = new Sag();
-    $this->refreshDatabases();
+
+    for(; true; sleep(20)) {
+      $this->refreshDatabases();
+    }
   }
 
   public static function run() {
