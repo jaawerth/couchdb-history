@@ -5,6 +5,7 @@
  * process for each new database.
  */
 require_once('../lib/sag-0.5.1/Sag.php');
+require_once('../lib/logger/Logger.php');
 
 class CouchHistory {
   private static $instance;
@@ -16,6 +17,8 @@ class CouchHistory {
   private $sag;
 
   private function __construct() {
+    Logger::setFile('/tmp/c-h.log');
+
     $this->sag = new Sag();
     $this->refreshDatabases();
   }
@@ -29,11 +32,14 @@ class CouchHistory {
   }
 
   private function fork($db) {
-    echo "forking to watch $db\n";
+    Logger::info("Forking to watch $db");
+
     exec("./couchdb-history-watch $db \"{$this->dbPrefix}$db\" >/dev/null 2>&1 &");
   }
 
   private function refreshDatabases() {
+    Logger::info('Refreshing databases.');
+
     $dbs = $this->sag->getAllDatabases()->body;
 
     foreach($dbs as $v) {
