@@ -9,11 +9,6 @@ require_once('../lib/sag-0.5.1/Sag.php');
 class CouchHistory {
   private static $instance;
 
-  private $DATABASE_BLACKLIST = array(
-    '_users' => true,
-    '_replicate' => true
-  );
-
   private $dbPrefix = 'ch-';
 
   private $dbsSeen = array();
@@ -44,7 +39,7 @@ class CouchHistory {
     foreach($dbs as $v) {
       if(
         !$this->dbsSeen[$v] &&
-        !$this->DATABASE_BLACKLIST[$v] &&
+        substr($v, 0, 1) !== '_' &&
         substr($v, 0, strlen($this->dbPrefix)) !== $this->dbPrefix
       ) {
         $this->dbsSeen[$v] = true;
